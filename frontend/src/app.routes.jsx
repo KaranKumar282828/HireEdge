@@ -4,39 +4,20 @@ import Register from "./features/auth/pages/Register"
 import Protected from "./features/auth/components/Protected"
 import Home from "./features/interview/pages/Home"
 import Interview from "./features/interview/pages/Interview"
-import { useAuth } from "./features/auth/hooks/useAuth"
+// ✅ useAuth ko app.routes mein import nahi karna chahiye
+// PublicOnly component alag file mein banao
 
 
-/**
- * ✅ PublicOnly — sirf logged out users ke liye
- * Agar already logged in hai toh home pe bhejo
- * Jaise Protected logged out users ko login pe bhejta hai
- * PublicOnly logged in users ko home pe bhejta hai
- */
-const PublicOnly = ({ children }) => {
-    const { user, loading } = useAuth()
-
-    if (loading) {
-        return (
-            <main className="loading-screen">
-                <div className="spinner" />
-            </main>
-        )
-    }
-
-    if (user) {
-        return <Navigate to="/" replace />
-    }
-
-    return children
-}
+// ✅ PublicOnly ko alag component file mein le jao
+// src/features/auth/components/PublicOnly.jsx banao
+import PublicOnly from "./features/auth/components/PublicOnly"
 
 
 export const router = createBrowserRouter([
     {
         path: "/login",
         element: (
-            <PublicOnly>   {/* ✅ Logged in user login page pe nahi ja sakta */}
+            <PublicOnly>
                 <Login />
             </PublicOnly>
         )
@@ -44,7 +25,7 @@ export const router = createBrowserRouter([
     {
         path: "/register",
         element: (
-            <PublicOnly>   {/* ✅ Logged in user register page pe nahi ja sakta */}
+            <PublicOnly>
                 <Register />
             </PublicOnly>
         )
