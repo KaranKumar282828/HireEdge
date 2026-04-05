@@ -1,20 +1,6 @@
 @use "sass:color";
+@use "../../../styles/variables" as *; // ✅ Shared variables use karo
 
-// ── Variables ────────────────────────────────────────────────────────────────
-$bg-page:        #0d1117;
-$bg-card:        #161b22;
-$bg-panel:       #1c2230;
-$bg-input:       #1e2535;
-$border-color:   #2a3348;
-$text-primary:   #e6edf3;
-$text-muted:     #7d8590;
-$accent:         #ff2d78;
-$accent-alt:     #ff6b9d;
-$badge-required: #ff2d78;
-$badge-best:     #ff2d78;
-$info-bg:        #1b2a4a;
-$info-border:    #2d4a7a;
-$font-stack:     system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 
 // ── Page Shell ───────────────────────────────────────────────────────────────
 .home-page {
@@ -23,7 +9,6 @@ $font-stack:     system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Robot
     background-color: $bg-page;
     color: $text-primary;
     font-family: $font-stack;
-
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -156,6 +141,13 @@ $font-stack:     system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Robot
             right: 2rem;
             font-size: 0.75rem;
             color: $text-muted;
+            transition: color 0.2s;
+
+            // ✅ Fix 1: Warning state — Home.jsx mein use ho raha tha lekin style missing tha
+            &--warning {
+                color: $severity-medium;
+                font-weight: 600;
+            }
         }
     }
 
@@ -232,6 +224,11 @@ $font-stack:     system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Robot
         font-weight: 500;
         color: $text-primary;
         margin: 0;
+
+        // ✅ Fix 2: File selected state — Home.jsx mein use tha, style missing tha
+        &--selected {
+            color: $severity-low;  // ✅ Green — file select ho gayi
+        }
     }
 
     &__subtitle {
@@ -297,19 +294,17 @@ $font-stack:     system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Robot
     }
 }
 
-// ── Generate Button (FIXED ONLY HERE) ─────────────────────────────────────────
+// ── Generate Button ───────────────────────────────────────────────────────────
 .generate-btn {
     display: flex;
     align-items: center;
     gap: 0.5rem;
     padding: 0.75rem 1.5rem;
-
     background: linear-gradient(
         135deg,
         $accent 0%,
         color.adjust($accent, $lightness: -10%) 100%
     );
-
     color: #fff;
     font-size: 0.9rem;
     font-weight: 600;
@@ -319,29 +314,36 @@ $font-stack:     system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Robot
     transition: opacity 0.2s, transform 0.1s;
     font-family: $font-stack;
 
-    &:hover {
+    &:hover:not(:disabled) {
         opacity: 0.9;
     }
 
-    &:active {
+    &:active:not(:disabled) {
         transform: scale(0.98);
+    }
+
+    // ✅ Fix 3: Disabled state — loading mein button style missing tha
+    &:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+        transform: none;
     }
 }
 
 // ── Recent Reports ────────────────────────────────────────────────────────────
-.recent-reports{
+.recent-reports {
     display: flex;
     flex-direction: column;
     gap: 0.75rem;
     width: 100%;
     max-width: 900px;
 
-    .reports-list{
+    .reports-list {
         display: flex;
         gap: 0.75rem;
         flex-wrap: wrap;
 
-        .report-item{
+        .report-item {
             background-color: $bg-card;
             border: 1px solid $border-color;
             border-radius: 0.5rem;
@@ -352,6 +354,18 @@ $font-stack:     system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Robot
             gap: 0.5rem;
             cursor: pointer;
             flex-shrink: 0;
+            transition: border-color 0.2s;
+
+            // ✅ Fix 4: Hover state — report item interactive lagni chahiye
+            &:hover {
+                border-color: $accent;
+            }
+
+            // ✅ Fix 5: Keyboard focus — accessibility ke liye
+            &:focus-visible {
+                outline: 2px solid $accent;
+                outline-offset: 2px;
+            }
 
             .match-score {
                 font-size: 0.8rem;
@@ -362,6 +376,11 @@ $font-stack:     system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Robot
         }
     }
 }
+
+// ── Score Colors — report list mein ─────────────────────────────────────────
+.score--high { color: $severity-low; }
+.score--mid  { color: $severity-medium; }
+.score--low  { color: $severity-high; }
 
 // ── Page Footer ───────────────────────────────────────────────────────────────
 .page-footer {
@@ -377,5 +396,18 @@ $font-stack:     system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Robot
         &:hover {
             color: $text-primary;
         }
+    }
+}
+
+// ── Responsive ───────────────────────────────────────────────────────────────
+// ✅ Fix 6: Mobile pe panels stack ho jayen
+@media (max-width: 768px) {
+    .interview-card__body {
+        flex-direction: column;
+    }
+
+    .panel-divider {
+        width: 100%;
+        height: 1px;
     }
 }

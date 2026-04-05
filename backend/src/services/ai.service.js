@@ -1,43 +1,38 @@
-const { GoogleGenAI } = require("@google/genai")
+const Groq = require("groq-sdk")
 const { z } = require("zod")
-const { zodToJsonSchema } = require("zod-to-json-schema")
 const puppeteer = require("puppeteer")
 
 
-// ✅ LESSON 11: App start hote hi env variables check karo
-// Agar key nahi hai toh runtime pe pata chalega — bahut bura hoga
-// Startup pe hi crash karo taaki pata chal jaye
-if (!process.env.GOOGLE_GENAI_API_KEY) {
-    throw new Error("GOOGLE_GENAI_API_KEY is missing in environment variables. Please set it in your .env file.")
+if (!process.env.GROQ_API_KEY) {
+    throw new Error("GROQ_API_KEY is missing in environment variables.")
 }
 
-const ai = new GoogleGenAI({
-    apiKey: process.env.GOOGLE_GENAI_API_KEY
+const groq = new Groq({
+    apiKey: process.env.GROQ_API_KEY
 })
 
 
-// ✅ LESSON 12: Constants — ek jagah se model change karna easy ho
-const AI_MODEL = "gemini-2.0-flash"
+const AI_MODEL = "llama-3.3-70b-versatile"  // ✅ Best free model on Groq
 const MAX_RETRIES = 3
 const RETRY_DELAY_MS = 1000
 
 
 const interviewReportSchema = z.object({
-    matchScore: z.number().describe("A score between 0 and 100 indicating how well the candidate's profile matches the job describe"),
+    matchScore: z.number().describe("A score between 0 and 100 indicating how well the candidate's profile matches the job description"),
     technicalQuestions: z.array(z.object({
         question: z.string().describe("The technical question can be asked in the interview"),
         intention: z.string().describe("The intention of interviewer behind asking this question"),
         answer: z.string().describe("How to answer this question, what points to cover, what approach to take etc.")
-    })).describe("Technical questions that can be asked in the interview along with their intention and how to answer them"),
+    })).describe("Technical questions that can be asked in the interview"),
     behavioralQuestions: z.array(z.object({
-        question: z.string().describe("The technical question can be asked in the interview"),
+        question: z.string().describe("The behavioral question can be asked in the interview"),
         intention: z.string().describe("The intention of interviewer behind asking this question"),
         answer: z.string().describe("How to answer this question, what points to cover, what approach to take etc.")
-    })).describe("Behavioral questions that can be asked in the interview along with their intention and how to answer them"),
+    })).describe("Behavioral questions that can be asked in the interview"),
     skillGaps: z.array(z.object({
         skill: z.string().describe("The skill which the candidate is lacking"),
-        severity: z.enum([ "low", "medium", "high" ]).describe("The severity of this skill gap")
-    })).describe("List of skill gaps in the candidate's profile along with their severity"),
+        severity: z.enum(["low", "medium", "high"]).describe("The severity of this skill gap")
+    })).describe("List of skill gaps in the candidate's profile"),
     preparationPlan: z.array(z.object({
         day: z.number().describe("The day number in the preparation plan, starting from 1"),
         focus: z.string().describe("The main focus of this day"),
@@ -48,10 +43,7 @@ const interviewReportSchema = z.object({
 
 
 /**
- * ✅ LESSON 13: Retry logic kyun zaroori hai?
- * AI APIs kabhi kabhi temporarily fail ho jaati hain — network hiccup, rate limit, timeout
- * Retry karne se ye failures automatically recover ho jaati hain
- * Exponential backoff — pehle 1s wait, phir 2s, phir 3s — server ko recover karne ka time dete hain
+ * ✅ Retry logic — temporary failures handle karo
  */
 async function withRetry(fn, retries = MAX_RETRIES) {
     for (let attempt = 1; attempt <= retries; attempt++) {
@@ -59,18 +51,13 @@ async function withRetry(fn, retries = MAX_RETRIES) {
             return await fn()
         } catch (error) {
             const isLastAttempt = attempt === retries
-
-            // ✅ Kuch errors pe retry karna fayda nahi — jaise invalid API key
-            // Sirf temporary errors pe retry karo
             const isRetryable = error.message?.includes("503") ||
-                error.message?.includes("429") ||  // rate limit
+                error.message?.includes("429") ||
                 error.message?.includes("timeout")
 
-            if (isLastAttempt || !isRetryable) {
-                throw error
-            }
+            if (isLastAttempt || !isRetryable) throw error
 
-            const delay = RETRY_DELAY_MS * attempt  // 1s, 2s, 3s
+            const delay = RETRY_DELAY_MS * attempt
             console.warn(`AI API attempt ${attempt} failed. Retrying in ${delay}ms...`)
             await new Promise(resolve => setTimeout(resolve, delay))
         }
@@ -80,30 +67,61 @@ async function withRetry(fn, retries = MAX_RETRIES) {
 
 async function generateInterviewReport({ resume, selfDescription, jobDescription }) {
 
-    const prompt = `Generate an interview report for a candidate with the following details:
-                        Resume: ${resume}
-                        Self Description: ${selfDescription}
-                        Job Description: ${jobDescription}
-`
+    const prompt = `You are an expert interview coach. Generate a detailed interview report for a candidate.
 
-    // ✅ LESSON 14: Retry ke saath AI call karo
+Resume: ${resume}
+Self Description: ${selfDescription}
+Job Description: ${jobDescription}
+
+Return a JSON object with EXACTLY this structure:
+{
+    "matchScore": <number 0-100>,
+    "title": "<job title>",
+    "technicalQuestions": [
+        {
+            "question": "<question>",
+            "intention": "<why interviewer asks this>",
+            "answer": "<how to answer>"
+        }
+    ],
+    "behavioralQuestions": [
+        {
+            "question": "<question>",
+            "intention": "<why interviewer asks this>",
+            "answer": "<how to answer>"
+        }
+    ],
+    "skillGaps": [
+        {
+            "skill": "<skill name>",
+            "severity": "<low|medium|high>"
+        }
+    ],
+    "preparationPlan": [
+        {
+            "day": <number>,
+            "focus": "<focus area>",
+            "tasks": ["<task1>", "<task2>"]
+        }
+    ]
+}
+
+Return ONLY the JSON object, no other text.`
+
+
     const response = await withRetry(() =>
-        ai.models.generateContent({
+        groq.chat.completions.create({
             model: AI_MODEL,
-            contents: prompt,
-            config: {
-                responseMimeType: "application/json",
-                responseSchema: zodToJsonSchema(interviewReportSchema),
-            }
+            messages: [{ role: "user", content: prompt }],
+            temperature: 0.7,
+            // ✅ Groq JSON mode — clean JSON response guarantee
+            response_format: { type: "json_object" }
         })
     )
 
-    // ✅ LESSON 15: AI response validate karo Zod se
-    // AI kabhi kabhi schema se alag response de sakti hai
-    // safeParse — throw nahi karta, success/error object deta hai
     let parsed
     try {
-        parsed = JSON.parse(response.text)
+        parsed = JSON.parse(response.choices[0].message.content)
     } catch {
         throw new Error("AI returned invalid JSON response.")
     }
@@ -118,32 +136,23 @@ async function generateInterviewReport({ resume, selfDescription, jobDescription
 }
 
 
-/**
- * ✅ LESSON 16: Puppeteer production config
- * --no-sandbox: Linux servers pe sandbox support nahi hoti
- * --disable-setuid-sandbox: Same reason
- * --disable-dev-shm-usage: Docker/Linux pe /dev/shm chhota hota hai — crash hota hai iske bina
- */
 async function generatePdfFromHtml(htmlContent) {
-    let browser = null  // ✅ finally mein close karne ke liye bahar declare karo
-
+    let browser = null
     try {
         browser = await puppeteer.launch({
             headless: true,
             args: [
                 "--no-sandbox",
                 "--disable-setuid-sandbox",
-                "--disable-dev-shm-usage",  // ✅ Docker pe zaroori
-                "--disable-gpu"             // ✅ Server pe GPU nahi hoti
+                "--disable-dev-shm-usage",
+                "--disable-gpu"
             ]
         })
 
         const page = await browser.newPage()
-
-        // ✅ LESSON 17: Timeout set karo — agar page load nahi hua toh hang mat karo
         await page.setContent(htmlContent, {
             waitUntil: "networkidle0",
-            timeout: 30000  // 30 seconds
+            timeout: 30000
         })
 
         const pdfBuffer = await page.pdf({
@@ -154,64 +163,61 @@ async function generatePdfFromHtml(htmlContent) {
                 left: "15mm",
                 right: "15mm"
             },
-            printBackground: true  // ✅ Background colors bhi print ho
+            printBackground: true
         })
 
         return pdfBuffer
 
     } finally {
-        // ✅ LESSON 18: Browser hamesha close karo — memory leak rokta hai
-        // finally mein isliye kyunki error aane par bhi close hona chahiye
-        if (browser) {
-            await browser.close()
-        }
+        if (browser) await browser.close()
     }
 }
 
 
 async function generateResumePdf({ resume, selfDescription, jobDescription }) {
 
-    const resumePdfSchema = z.object({
-        html: z.string().describe("The HTML content of the resume")
-    })
+    const prompt = `You are a professional resume writer. Generate an ATS-friendly HTML resume.
 
-    const prompt = `Generate resume for a candidate with the following details:
-                        Resume: ${resume}
-                        Self Description: ${selfDescription}
-                        Job Description: ${jobDescription}
+Resume Content: ${resume}
+Self Description: ${selfDescription}
+Job Description: ${jobDescription}
 
-                        the response should be a JSON object with a single field "html" which contains the HTML content of the resume which can be converted to PDF using any library like puppeteer.
-                        The resume should be tailored for the given job description and should highlight the candidate's strengths and relevant experience. The HTML content should be well-formatted and structured, making it easy to read and visually appealing.
-                        The content of resume should be not sound like it's generated by AI and should be as close as possible to a real human-written resume.
-                        you can highlight the content using some colors or different font styles but the overall design should be simple and professional.
-                        The content should be ATS friendly, i.e. it should be easily parsable by ATS systems without losing important information.
-                        The resume should not be so lengthy, it should ideally be 1-2 pages long when converted to PDF. Focus on quality rather than quantity.
-                    `
+Return a JSON object with EXACTLY this structure:
+{
+    "html": "<complete HTML resume>"
+}
+
+Requirements for the HTML:
+- Professional and clean design
+- ATS friendly
+- Tailored for the job description
+- 1-2 pages when converted to PDF
+- Use inline CSS only
+- Do not sound AI generated
+
+Return ONLY the JSON object, no other text.`
 
     const response = await withRetry(() =>
-        ai.models.generateContent({
+        groq.chat.completions.create({
             model: AI_MODEL,
-            contents: prompt,
-            config: {
-                responseMimeType: "application/json",
-                responseSchema: zodToJsonSchema(resumePdfSchema),
-            }
+            messages: [{ role: "user", content: prompt }],
+            temperature: 0.7,
+            response_format: { type: "json_object" }
         })
     )
 
     let parsed
     try {
-        parsed = JSON.parse(response.text)
+        parsed = JSON.parse(response.choices[0].message.content)
     } catch {
         throw new Error("AI returned invalid JSON response for resume.")
     }
 
-    const validated = resumePdfSchema.safeParse(parsed)
-    if (!validated.success) {
+    if (!parsed.html) {
         throw new Error("AI returned an unexpected response structure for resume.")
     }
 
-    const pdfBuffer = await generatePdfFromHtml(validated.data.html)
+    const pdfBuffer = await generatePdfFromHtml(parsed.html)
     return pdfBuffer
 }
 

@@ -1,5 +1,6 @@
 const express = require("express")
 const rateLimit = require("express-rate-limit")
+const { ipKeyGenerator } = require("express-rate-limit")  // Import ipKeyGenerator for IPv6 support
 const authMiddleware = require("../middlewares/auth.middleware")
 const interviewController = require("../controllers/interview.controller")
 const uploadPdf = require("../middlewares/file.middleware")
@@ -19,7 +20,7 @@ const interviewRouter = express.Router()
 const generateReportLimiter = rateLimit({
     windowMs: 60 * 60 * 1000,  // 1 hour window
     max: 10,                    // 1 hour mein sirf 10 reports generate kar sakta hai ek user
-    keyGenerator: (req) => req.user?.id || req.ip,  // ✅ User ID se track karo, IP se nahi
+    keyGenerator: (req) => req.user?.id || ipKeyGenerator(req),  // ✅ User ID se track karo, IP se nahi
     // ✅ LESSON 30: Standard rate limit headers — frontend ko pata chale kitne requests bache hain
     standardHeaders: true,   // RateLimit-Remaining, RateLimit-Reset headers bhejo
     legacyHeaders: false,    // purane X-RateLimit headers band karo
@@ -34,7 +35,7 @@ const generateReportLimiter = rateLimit({
 const getReportLimiter = rateLimit({
     windowMs: 60 * 1000,    // 1 minute window
     max: 30,                // 1 minute mein 30 GET requests
-    keyGenerator: (req) => req.user?.id || req.ip,
+    keyGenerator: (req) => req.user?.id || ipKeyGenerator(req),
     standardHeaders: true,
     legacyHeaders: false,
     message: {
@@ -46,7 +47,7 @@ const getReportLimiter = rateLimit({
 const pdfLimiter = rateLimit({
     windowMs: 60 * 60 * 1000,  // 1 hour window
     max: 10,                    // 1 hour mein sirf 10 PDFs generate kar sakta hai
-    keyGenerator: (req) => req.user?.id || req.ip,
+    keyGenerator: (req) => req.user?.id || ipKeyGenerator(req),
     standardHeaders: true,
     legacyHeaders: false,
     message: {

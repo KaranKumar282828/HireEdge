@@ -1,20 +1,54 @@
-.button{
+@use "./variables" as *;  // ✅ Shared variables use karo
+// ✅ Shared variables use karo
 
+
+.button {
     border: none;
     outline: none;
     padding-inline: 1.5rem;
     padding-block: 0.75rem;
     border-radius: 1rem;
     cursor: pointer;
-
+    font-family: $font-stack;   // ✅ Font consistent rakho
+    font-weight: 600;
+    font-size: 0.9rem;
     transition: all 0.3s ease-in-out;
+    display: inline-flex;       // ✅ Icon + text align karne ke liye
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
 
-    &.primary-button{
-        background-color: #e1034d;
+
+    &.primary-button {
+        background-color: $accent;  // ✅ Hardcoded color ki jagah variable
         color: white;
+
+        // ✅ Hover state — pehle missing tha
+        &:hover:not(:disabled) {
+            background-color: $accent-alt;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba($accent, 0.3);
+        }
     }
 
-    &:active{
-        transform: scale(0.9);
+
+    &:active:not(:disabled) {
+        transform: scale(0.97);  // ✅ 0.9 bahut zyada tha — subtle rakho
+    }
+
+
+    // ✅ Disabled state — Interview page pe download button disable hota hai
+    &:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+        transform: none;
+        box-shadow: none;
+    }
+
+
+    // ✅ Keyboard accessibility
+    &:focus-visible {
+        outline: 2px solid $accent;
+        outline-offset: 2px;
     }
 }

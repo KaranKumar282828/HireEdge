@@ -1,21 +1,47 @@
-const pdfParse = require("pdf-parse")
+const PDFParser = require("pdf2json")
 const { generateInterviewReport, generateResumePdf } = require("../services/ai.service")
 const interviewReportModel = require("../models/interviewReport.model")
 
 
-// ✅ LESSON 1: Constants alag rakhte hain — magic numbers code mein nahi likhte
 const MAX_FILE_SIZE_MB = 5
 const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024
 const ALLOWED_MIME_TYPE = "application/pdf"
 
 
-/**
- * ✅ LESSON 2: Input validate karo PEHLE — 
- * Kabhi bhi user ke input par blindly trust mat karo.
- * Agar file nahi hai, ya galat format hai, ya fields missing hain
- * toh AI call tak pahunchne se pehle hi reject karo.
- * Isse AI ke unnecessary API calls bachte hain (paisa bhi, time bhi)
- */
+// ✅ pdf2json se text extract karne ka helper
+// ✅ Sirf ye helper update karo — baaki sab same
+const extractTextFromPdf = (buffer) => {
+    return new Promise((resolve, reject) => {
+        const pdfParser = new PDFParser()
+
+        pdfParser.on("pdfParser_dataReady", (pdfData) => {
+            // ✅ Safe decode — crash nahi hoga
+            const safeDecodeURI = (str) => {
+                try {
+                    return decodeURIComponent(str)
+                } catch {
+                    return str
+                }
+            }
+
+            const text = pdfData.Pages.map(page =>
+                page.Texts.map(t =>
+                    safeDecodeURI(t.R.map(r => r.T).join(""))
+                ).join(" ")
+            ).join("\n")
+
+            resolve(text)
+        })
+
+        pdfParser.on("pdfParser_dataError", (err) => {
+            reject(new Error("Failed to parse PDF: " + err.parserError))
+        })
+
+        pdfParser.parseBuffer(buffer)
+    })
+}
+
+
 function validateGenerateReportInput(req) {
     const errors = []
 
@@ -42,28 +68,19 @@ function validateGenerateReportInput(req) {
 }
 
 
-/**
- * @description Controller to generate interview report based on user self description, resume and job description.
- */
 async function generateInterViewReportController(req, res) {
     try {
-
-        // ✅ LESSON 3: Pehle validate karo, phir process karo
         const errors = validateGenerateReportInput(req)
         if (errors.length > 0) {
             return res.status(400).json({
                 message: "Validation failed.",
-                errors  // frontend ko exact errors batao
+                errors
             })
         }
 
-        // ✅ LESSON 4: PDF parse bhi fail ho sakta hai
-        // Agar user ne corrupted PDF bheja toh? try-catch mein hai toh handle ho jayega
-        const pdfData = await pdfParse(req.file.buffer)
-        const resumeText = pdfData.text
+        // ✅ pdf2json wala helper use karo
+        const resumeText = await extractTextFromPdf(req.file.buffer)
 
-        // ✅ LESSON 5: Extracted text bhi validate karo
-        // Empty PDF ya image-only PDF ka text empty hoga
         if (!resumeText || resumeText.trim() === "") {
             return res.status(400).json({
                 message: "Could not extract text from the uploaded PDF. Please make sure the PDF contains readable text and is not a scanned image."
@@ -78,7 +95,6 @@ async function generateInterViewReportController(req, res) {
             jobDescription: jobDescription.trim()
         })
 
-        // ✅ LESSON 6: Agar AI ne null ya undefined diya toh bhi handle karo
         if (!interViewReportByAi) {
             return res.status(500).json({
                 message: "Failed to generate interview report. Please try again."
@@ -99,11 +115,6 @@ async function generateInterViewReportController(req, res) {
         })
 
     } catch (error) {
-        // ✅ LESSON 7: Error types ke hisaab se alag response do
-        // SyntaxError — AI ne invalid JSON diya
-        // ValidationError — Mongoose schema fail hua
-        // Baaki sab — generic 500
-
         console.error("generateInterViewReportController Error:", error)
 
         if (error.name === "SyntaxError") {
@@ -121,22 +132,16 @@ async function generateInterViewReportController(req, res) {
 
         res.status(500).json({
             message: "Failed to generate interview report.",
-            // ✅ LESSON 8: Production mein error.message user ko mat bhejo
-            // Sirf development mein bhejo — sensitive info leak ho sakti hai
             ...(process.env.NODE_ENV === "development" && { error: error.message })
         })
     }
 }
 
 
-/**
- * @description Controller to get interview report by interviewId.
- */
 async function getInterviewReportByIdController(req, res) {
     try {
         const { interviewId } = req.params
 
-        // ✅ LESSON 9: MongoDB ID validate karo — invalid ID se Mongoose crash karta hai
         if (!interviewId.match(/^[0-9a-fA-F]{24}$/)) {
             return res.status(400).json({
                 message: "Invalid interview ID format."
@@ -145,7 +150,7 @@ async function getInterviewReportByIdController(req, res) {
 
         const interviewReport = await interviewReportModel.findOne({
             _id: interviewId,
-            user: req.user.id  // ✅ user ka sirf apna report mile — security
+            user: req.user.id
         })
 
         if (!interviewReport) {
@@ -169,17 +174,12 @@ async function getInterviewReportByIdController(req, res) {
 }
 
 
-/**
- * @description Controller to get all interview reports of logged in user.
- */
 async function getAllInterviewReportsController(req, res) {
     try {
         const interviewReports = await interviewReportModel
             .find({ user: req.user.id })
             .sort({ createdAt: -1 })
             .select("-resume -selfDescription -jobDescription -__v -technicalQuestions -behavioralQuestions -skillGaps -preparationPlan")
-            // ✅ LESSON 10: .lean() — plain JS object return karta hai
-            // Mongoose document se faster hota hai jab sirf read karna ho
             .lean()
 
         res.status(200).json({
@@ -197,14 +197,10 @@ async function getAllInterviewReportsController(req, res) {
 }
 
 
-/**
- * @description Controller to generate resume PDF based on interview report.
- */
 async function generateResumePdfController(req, res) {
     try {
         const { interviewReportId } = req.params
 
-        // ✅ MongoDB ID validate karo
         if (!interviewReportId.match(/^[0-9a-fA-F]{24}$/)) {
             return res.status(400).json({
                 message: "Invalid interview report ID format."
@@ -212,7 +208,7 @@ async function generateResumePdfController(req, res) {
         }
 
         const interviewReport = await interviewReportModel
-            .findOne({ _id: interviewReportId, user: req.user.id })  // ✅ security check
+            .findOne({ _id: interviewReportId, user: req.user.id })
             .lean()
 
         if (!interviewReport) {
@@ -234,7 +230,7 @@ async function generateResumePdfController(req, res) {
         res.set({
             "Content-Type": "application/pdf",
             "Content-Disposition": `attachment; filename=resume_${interviewReportId}.pdf`,
-            "Content-Length": pdfBuffer.length  // ✅ browser ko size batao — better download experience
+            "Content-Length": pdfBuffer.length
         })
 
         res.send(pdfBuffer)

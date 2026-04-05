@@ -1,19 +1,25 @@
-import { useAuth } from "../hooks/useAuth";
-import { Navigate } from "react-router";
-import React from 'react'
-
-const Protected = ({children}) => {
-    const { loading,user } = useAuth()
+import { useAuth } from "../hooks/useAuth"
+import { Navigate, useLocation } from "react-router"
 
 
-    if(loading){
-        return (<main><h1>Loading...</h1></main>)
+const Protected = ({ children }) => {
+    const { loading, user } = useAuth()
+    const location = useLocation()
+
+
+    if (loading) {
+        // ✅ Inline style hata diya — global.scss ka class use karo
+        return (
+            <main className="loading-screen">
+                <div className="spinner" />
+            </main>
+        )
     }
 
-    if(!user){
-        return <Navigate to={'/login'} />
+    if (!user) {
+        return <Navigate to="/login" state={{ from: location.pathname }} replace />
     }
-    
+
     return children
 }
 

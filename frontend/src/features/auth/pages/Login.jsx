@@ -1,25 +1,22 @@
 import { useState } from "react"
-import { useNavigate, Link } from "react-router"
+import { useNavigate, useLocation, Link } from "react-router"
 import "../auth.form.scss"
 import { useAuth } from "../hooks/useAuth"
 
 
 const Login = () => {
 
-    const { loading, handleLogin } = useAuth()
+    const { loading, handleLogin, error } = useAuth()
+    // ✅ Update 1: error ab useAuth se aa raha hai — local serverError nahi chahiye
+    // ✅ Update 2: useLocation — login ke baad wapas usi page pe bhejo
+
     const navigate = useNavigate()
+    const location = useLocation()
+    const from = location.state?.from || "/"  // ✅ Jahan se aaya tha
 
     const [ email, setEmail ] = useState("")
     const [ password, setPassword ] = useState("")
-
-    /**
-     * ✅ LESSON 70: Frontend Validation
-     * Backend pe bhi validation hai lekin
-     * frontend pe bhi karo — unnecessary API call bachti hai
-     * User ko instant feedback milta hai
-     */
-    const [ errors, setErrors ] = useState({})  // ✅ Field-wise errors
-    const [ serverError, setServerError ] = useState(null)  // ✅ API errors
+    const [ errors, setErrors ] = useState({})
 
 
     const validate = () => {
@@ -39,29 +36,20 @@ const Login = () => {
         }
 
         setErrors(newErrors)
-        return Object.keys(newErrors).length === 0  // ✅ true = valid, false = invalid
+        return Object.keys(newErrors).length === 0
     }
 
 
     const handleSubmit = async (e) => {
         e.preventDefault()
-        setServerError(null)  // ✅ Pehle ki error clear karo
 
-        // ✅ Validate pehle — sahi ho toh API call karo
         if (!validate()) return
 
-        /**
-         * ✅ LESSON 71: Navigate sirf success pe karo
-         * handleLogin null return kare toh error hai
-         * Tab navigate mat karo — user ko error dikhao
-         */
         const result = await handleLogin({ email, password })
 
         if (result) {
-            navigate("/")
+            navigate(from)  // ✅ "/" ki jagah from use karo — wapas usi page pe
         }
-        // ✅ Agar result null hai — handleLogin ne setServerError call kar diya hoga
-        // Ya hum yahan bhi set kar sakte hain
     }
 
 
@@ -70,28 +58,20 @@ const Login = () => {
             <div className="form-container">
                 <h1>Login</h1>
 
-                {/**
-                  * ✅ LESSON 72: Server error prominently dikhao
-                  * "Invalid email or password" — user ko pata chale kya galat hua
-                  */}
-                {serverError && (
+                {/* ✅ Error ab useAuth se aa raha hai — context mein store hai */}
+                {error && (
                     <div className="error-banner">
-                        {serverError}
+                        {error}
                     </div>
                 )}
 
                 <form onSubmit={handleSubmit} noValidate>
-                    {/**
-                      * noValidate — browser ki default validation band karo
-                      * Hum apni custom validation use kar rahe hain
-                      */}
 
                     <div className="input-group">
                         <label htmlFor="email">Email</label>
                         <input
                             onChange={(e) => {
                                 setEmail(e.target.value)
-                                // ✅ LESSON 73: User type kare toh error clear ho
                                 if (errors.email) setErrors(prev => ({ ...prev, email: null }))
                             }}
                             value={email}
@@ -99,10 +79,9 @@ const Login = () => {
                             id="email"
                             name="email"
                             placeholder="Enter email address"
-                            disabled={loading}  // ✅ Loading mein input disable
+                            disabled={loading}
                             className={errors.email ? "input-error" : ""}
                         />
-                        {/* ✅ Field ke neeche error dikhao */}
                         {errors.email && <span className="field-error">{errors.email}</span>}
                     </div>
 
@@ -124,11 +103,6 @@ const Login = () => {
                         {errors.password && <span className="field-error">{errors.password}</span>}
                     </div>
 
-                    {/**
-                      * ✅ LESSON 74: Button states
-                      * Loading mein — disable karo aur text change karo
-                      * Double submit nahi hoga
-                      */}
                     <button
                         className="button primary-button"
                         disabled={loading}

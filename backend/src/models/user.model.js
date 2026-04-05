@@ -44,8 +44,8 @@ const userSchema = new mongoose.Schema({
  * Index ke saath direct jump karta hai — bahut fast
  * unique: true already index banata hai — explicitly likhna good practice hai
  */
-userSchema.index({ email: 1 })
-userSchema.index({ username: 1 })
+// userSchema.index({ email: 1 })
+// userSchema.index({ username: 1 })
 
 
 const userModel = mongoose.model("users", userSchema)

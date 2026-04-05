@@ -14,43 +14,36 @@ export const useInterview = () => {
     }
 
     const { loading, setLoading, report, setReport, reports, setReports, error, setError } = context
-    // ✅ LESSON 19: Error state context mein hona chahiye
-    // Taaki component mein error show kar sako user ko
 
 
-    /**
-     * ✅ LESSON 20: Error message extract karne ka helper
-     * Axios error ke andar deeply nested hota hai actual message
-     * Ye helper ek jagah se handle karta hai
-     */
     const extractErrorMessage = (error) => {
-        // Backend ne validation errors bheje
         if (error?.response?.data?.errors?.length > 0) {
             return error.response.data.errors.join(", ")
         }
-        // Backend ne single message bheja
         if (error?.response?.data?.message) {
             return error.response.data.message
         }
-        // Network error — backend tak pahuncha hi nahi
+        // ✅ Timeout error — interview.api.js interceptor se aata hai
+        if (error?.code === "ECONNABORTED" || error?.message?.includes("timed out")) {
+            return "Request timed out. AI is taking too long, please try again."
+        }
         if (error?.message === "Network Error") {
             return "Unable to connect to server. Please check your internet connection."
         }
-        // Default
         return "Something went wrong. Please try again."
     }
 
 
     const generateReport = async ({ jobDescription, selfDescription, resumeFile }) => {
         setLoading(true)
-        setError(null)  // ✅ Naya request — pehle ki error clear karo
+        setError(null)
         try {
             const response = await generateInterviewReport({ jobDescription, selfDescription, resumeFile })
             setReport(response.interviewReport)
             return response.interviewReport
         } catch (error) {
             const message = extractErrorMessage(error)
-            setError(message)   // ✅ UI mein error dikhao
+            setError(message)
             console.error("generateReport Error:", error)
             return null
         } finally {
@@ -59,38 +52,52 @@ export const useInterview = () => {
     }
 
 
-    const getReportById = async (interviewId) => {
+    const getReportById = async (interviewId, isMounted) => {
         setLoading(true)
         setError(null)
         try {
             const response = await getInterviewReportById(interviewId)
-            setReport(response.interviewReport)
+            // ✅ isMounted check — unmount ke baad state update mat karo
+            if (isMounted?.current) {
+                setReport(response.interviewReport)
+            }
             return response.interviewReport
         } catch (error) {
-            const message = extractErrorMessage(error)
-            setError(message)
+            if (isMounted?.current) {
+                const message = extractErrorMessage(error)
+                setError(message)
+            }
             console.error("getReportById Error:", error)
             return null
         } finally {
-            setLoading(false)
+            if (isMounted?.current) {
+                setLoading(false)
+            }
         }
     }
 
 
-    const getReports = async () => {
+    const getReports = async (isMounted) => {
         setLoading(true)
         setError(null)
         try {
             const response = await getAllInterviewReports()
-            setReports(response.interviewReports)
+            // ✅ isMounted check
+            if (isMounted?.current) {
+                setReports(response.interviewReports)
+            }
             return response.interviewReports
         } catch (error) {
-            const message = extractErrorMessage(error)
-            setError(message)
+            if (isMounted?.current) {
+                const message = extractErrorMessage(error)
+                setError(message)
+            }
             console.error("getReports Error:", error)
             return null
         } finally {
-            setLoading(false)
+            if (isMounted?.current) {
+                setLoading(false)
+            }
         }
     }
 
@@ -100,19 +107,14 @@ export const useInterview = () => {
         setError(null)
         try {
             const response = await generateResumePdf({ interviewReportId })
-
-            // ✅ LESSON 21: Blob URL cleanup — memory leak rokta hai
             const url = window.URL.createObjectURL(new Blob([ response ], { type: "application/pdf" }))
             const link = document.createElement("a")
             link.href = url
             link.setAttribute("download", `resume_${interviewReportId}.pdf`)
             document.body.appendChild(link)
             link.click()
-
-            // ✅ Click ke baad cleanup karo
             document.body.removeChild(link)
-            window.URL.revokeObjectURL(url)  // ✅ Memory free karo
-
+            window.URL.revokeObjectURL(url)
         } catch (error) {
             const message = extractErrorMessage(error)
             setError(message)
@@ -123,28 +125,29 @@ export const useInterview = () => {
     }
 
 
-    // ✅ LESSON 22: Cleanup function — component unmount hone par
-    // Agar user page chhod de aur request abhi bhi chal rahi ho
-    // toh state update nahi honi chahiye (memory leak + React warning)
     useEffect(() => {
-        let isMounted = true
+        /**
+         * ✅ useRef jaisa pattern — object reference use karo
+         * Boolean primitive copy hoti hai — object reference nahi
+         * isMounted.current = false karne se sab jagah reflect hoga
+         */
+        const isMounted = { current: true }
 
         const fetchData = async () => {
             if (interviewId) {
-                await getReportById(interviewId)
+                await getReportById(interviewId, isMounted)  // ✅ pass karo
             } else {
-                await getReports()
+                await getReports(isMounted)                  // ✅ pass karo
             }
         }
 
         fetchData()
 
         return () => {
-            isMounted = false  // ✅ Component unmount ho gaya
+            isMounted.current = false  // ✅ Ab sach mein kaam karega
         }
     }, [ interviewId ])
 
 
     return { loading, error, report, reports, generateReport, getReportById, getReports, getResumePdf }
-    //              ✅ error bhi return karo — components mein use ho sake
 }

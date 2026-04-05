@@ -1,5 +1,6 @@
 const { Router } = require("express")
 const rateLimit = require("express-rate-limit")
+const { ipKeyGenerator } = require("express-rate-limit")  // Import ipKeyGenerator for IPv6 support
 const authController = require("../controllers/auth.controller")
 const authMiddleware = require("../middlewares/auth.middleware")
 
@@ -15,7 +16,7 @@ const authRouter = Router()
 const loginLimiter = rateLimit({
     windowMs: 15 * 60 * 1000,  // 15 minutes
     max: 10,                    // 10 attempts
-    keyGenerator: (req) => req.body.email || req.ip,
+    keyGenerator: (req) => req.body.email || ipKeyGenerator(req),
     // ✅ LESSON 66: IP se nahi, email se track karo
     // Agar IP se track karo toh shared network (office, cafe) ke
     // saare users block ho jaate hain agar ek ne bahut try kiya
@@ -36,7 +37,7 @@ const loginLimiter = rateLimit({
 const registerLimiter = rateLimit({
     windowMs: 60 * 60 * 1000,  // 1 hour
     max: 5,                     // 1 hour mein sirf 5 accounts ek IP se
-    keyGenerator: (req) => req.ip,
+    keyGenerator: (req) => ipKeyGenerator(req),
     standardHeaders: true,
     legacyHeaders: false,
     message: {
@@ -53,7 +54,7 @@ const registerLimiter = rateLimit({
 const getMeLimiter = rateLimit({
     windowMs: 60 * 1000,    // 1 minute
     max: 30,                // 30 requests per minute
-    keyGenerator: (req) => req.user?.id || req.ip,
+    keyGenerator: (req) => req.user?.id || ipKeyGenerator(req),
     standardHeaders: true,
     legacyHeaders: false,
     message: {

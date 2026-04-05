@@ -52,12 +52,29 @@ app.use(cookieParser())
 
 /**
  * ✅ LESSON 40: MongoDB Injection Sanitization
- * Agar koi request body mein ye bheje:
- * { "email": { "$gt": "" } }
- * Toh MongoDB query hack ho sakti hai
- * mongoSanitize ye $ aur . characters remove kar deta hai
+ * express-mongo-sanitize v2.x doesn't support Express 5 (req.query is read-only)
+ * So we implement custom sanitization for just req.body
+ * This prevents MongoDB operator injection attacks
  */
-app.use(mongoSanitize())
+function mongoSanitizeMiddleware(req, res, next) {
+    // Only sanitize req.body, not req.query (which is read-only in Express 5)
+    if (req.body) {
+        const sanitize = (obj) => {
+            if (typeof obj !== 'object' || obj === null) return obj
+            
+            for (const key in obj) {
+                if (key.startsWith('$')) {
+                    delete obj[key]
+                } else if (typeof obj[key] === 'object') {
+                    sanitize(obj[key])
+                }
+            }
+        }
+        sanitize(req.body)
+    }
+    next()
+}
+app.use(mongoSanitizeMiddleware)
 
 
 /* Routes */

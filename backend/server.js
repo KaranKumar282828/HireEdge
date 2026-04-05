@@ -9,12 +9,7 @@ const connectToDB = require("./src/config/database")
  * Agar koi zaroori variable missing hai toh
  * server start hi mat hone do — better than runtime crash
  */
-const REQUIRED_ENV_VARS = [
-    "GOOGLE_GENAI_API_KEY",
-    "MONGO_URI",
-    "JWT_SECRET",
-    "NODE_ENV"
-]
+const REQUIRED_ENV_VARS = ["GROQ_API_KEY", "MONGO_URI", "JWT_SECRET", "NODE_ENV"]
 
 const missingVars = REQUIRED_ENV_VARS.filter(key => !process.env[key])
 if (missingVars.length > 0) {
