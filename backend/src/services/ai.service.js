@@ -1,6 +1,7 @@
 const Groq = require("groq-sdk")
 const { z } = require("zod")
-const puppeteer = require("puppeteer")
+const { zodToJsonSchema } = require("zod-to-json-schema")
+const htmlPdf = require("html-pdf-node")  // ✅ Puppeteer ki jagah
 
 
 if (!process.env.GROQ_API_KEY) {
@@ -11,8 +12,7 @@ const groq = new Groq({
     apiKey: process.env.GROQ_API_KEY
 })
 
-
-const AI_MODEL = "llama-3.3-70b-versatile"  // ✅ Best free model on Groq
+const AI_MODEL = "llama-3.3-70b-versatile"
 const MAX_RETRIES = 3
 const RETRY_DELAY_MS = 1000
 
@@ -42,9 +42,6 @@ const interviewReportSchema = z.object({
 })
 
 
-/**
- * ✅ Retry logic — temporary failures handle karo
- */
 async function withRetry(fn, retries = MAX_RETRIES) {
     for (let attempt = 1; attempt <= retries; attempt++) {
         try {
@@ -108,13 +105,11 @@ Return a JSON object with EXACTLY this structure:
 
 Return ONLY the JSON object, no other text.`
 
-
     const response = await withRetry(() =>
         groq.chat.completions.create({
             model: AI_MODEL,
             messages: [{ role: "user", content: prompt }],
             temperature: 0.7,
-            // ✅ Groq JSON mode — clean JSON response guarantee
             response_format: { type: "json_object" }
         })
     )
@@ -136,41 +131,21 @@ Return ONLY the JSON object, no other text.`
 }
 
 
+// ✅ Puppeteer hata diya — html-pdf-node use karo
 async function generatePdfFromHtml(htmlContent) {
-    let browser = null
-    try {
-        browser = await puppeteer.launch({
-            headless: true,
-            args: [
-                "--no-sandbox",
-                "--disable-setuid-sandbox",
-                "--disable-dev-shm-usage",
-                "--disable-gpu"
-            ]
-        })
-
-        const page = await browser.newPage()
-        await page.setContent(htmlContent, {
-            waitUntil: "networkidle0",
-            timeout: 30000
-        })
-
-        const pdfBuffer = await page.pdf({
-            format: "A4",
-            margin: {
-                top: "20mm",
-                bottom: "20mm",
-                left: "15mm",
-                right: "15mm"
-            },
-            printBackground: true
-        })
-
-        return pdfBuffer
-
-    } finally {
-        if (browser) await browser.close()
+    const file = { content: htmlContent }
+    const options = {
+        format: "A4",
+        margin: {
+            top: "20mm",
+            bottom: "20mm",
+            left: "15mm",
+            right: "15mm"
+        },
+        printBackground: true
     }
+    const pdfBuffer = await htmlPdf.generatePdf(file, options)
+    return pdfBuffer
 }
 
 
