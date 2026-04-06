@@ -59,6 +59,55 @@ p, h1, h2, h3, h4, h5, h6 {
 }
 
 
+// ── Navbar ────────────────────────────────────────────────────────────────────
+.navbar {
+    width: 100%;
+    padding: 0.75rem 2rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background-color: #161b22;
+    border-bottom: 1px solid #2a3348;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+
+    &__logo {
+        font-size: 1.1rem;
+        font-weight: 700;
+        color: whitesmoke;
+        letter-spacing: 0.5px;
+    }
+
+    &__right {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+    }
+
+    &__user {
+        font-size: 0.875rem;
+        color: #7d8590;
+    }
+
+    &__logout {
+        background: transparent;
+        border: 1px solid var(--primary);
+        color: var(--primary);
+        padding: 0.4rem 1rem;
+        border-radius: 0.5rem;
+        cursor: pointer;
+        font-size: 0.875rem;
+        transition: all 0.2s;
+
+        &:hover {
+            background: var(--primary);
+            color: white;
+        }
+    }
+}
+
+
 // ── Spinners ─────────────────────────────────────────────────────────────────
 .spinner {
     width: 40px;
@@ -111,16 +160,16 @@ p, h1, h2, h3, h4, h5, h6 {
 }
 
 
-// ── Generating Overlay — AI kaam karte waqt ──────────────────────────────────
+// ── Generating Overlay ────────────────────────────────────────────────────────
 .generating-overlay {
     position: fixed;
-    inset: 0;                           // top/right/bottom/left sab 0
+    inset: 0;
     background: rgba(0, 0, 0, 0.75);
-    backdrop-filter: blur(4px);         // background blur
+    backdrop-filter: blur(4px);
     display: flex;
     align-items: center;
     justify-content: center;
-    z-index: 1000;                      // Sab ke upar
+    z-index: 1000;
     animation: fadeIn 0.3s ease;
 
     &__box {
@@ -158,9 +207,9 @@ p, h1, h2, h3, h4, h5, h6 {
 }
 
 
-// ── Loading Bar — reports fetch hote waqt ────────────────────────────────────
+// ── Loading Bar ───────────────────────────────────────────────────────────────
 .loading-bar {
-    position: fixed;     // Page ke bilkul top pe
+    position: fixed;
     top: 0;
     left: 0;
     right: 0;
