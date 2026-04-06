@@ -151,80 +151,159 @@ async function generatePdfFromHtml(htmlContent) {
 
 async function generateResumePdf({ resume, selfDescription, jobDescription }) {
 
-    const prompt = `You are a professional ATS-optimized resume writer. Generate a clean, 1-page resume.
+    const prompt = `You are an expert ATS resume writer. Create a STRICTLY 1-PAGE resume.
 
-Resume Content: ${resume}
-Self Description: ${selfDescription}
+CANDIDATE DATA:
+Resume/Experience: ${resume}
+Self Description: ${selfDescription}  
 Job Description: ${jobDescription}
 
-Return a JSON object with EXACTLY this structure:
-{
-    "html": "<complete HTML resume>"
-}
+OUTPUT: Return ONLY this JSON:
+{ "html": "<full HTML here>" }
 
-STRICT REQUIREMENTS for the HTML resume:
-
-DESIGN:
-- Clean, minimal, professional design
-- Single column layout — NO multi-column
-- White background, black text
-- Font: Arial or Helvetica, 10-11px body, 14px name
-- Margins: 15mm all sides
-- Must fit in exactly 1 page when printed
-
-ATS RULES:
-- NO tables, NO columns, NO text boxes
-- NO images, NO icons, NO graphics
-- NO headers/footers
-- Standard section headings: SUMMARY, EDUCATION, EXPERIENCE, PROJECTS, SKILLS, ACHIEVEMENTS
-- Plain bullet points using • character only
-
-HTML STRUCTURE:
+GENERATE THIS EXACT HTML STRUCTURE:
+<!DOCTYPE html>
 <html>
 <head>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
-  body { font-family: Arial, sans-serif; font-size: 10.5px; color: #000; padding: 15mm; }
-  h1 { font-size: 18px; text-align: center; margin-bottom: 2px; }
-  .contact { text-align: center; font-size: 9.5px; margin-bottom: 8px; }
-  .section { margin-bottom: 8px; }
-  .section-title { font-size: 11px; font-weight: bold; text-transform: uppercase; border-bottom: 1px solid #000; margin-bottom: 4px; padding-bottom: 1px; letter-spacing: 0.5px; }
-  .job-header { display: flex; justify-content: space-between; font-weight: bold; font-size: 10.5px; }
-  .job-subtitle { font-style: italic; font-size: 10px; margin-bottom: 2px; }
-  ul { padding-left: 12px; margin: 2px 0; }
-  li { margin-bottom: 1px; line-height: 1.3; }
-  .skills-row { margin-bottom: 2px; }
+  body { 
+    font-family: Arial, sans-serif; 
+    font-size: 10px; 
+    color: #000000; 
+    padding: 12mm 15mm;
+    line-height: 1.3;
+  }
+  .name { 
+    font-size: 20px; 
+    font-weight: bold; 
+    text-align: center; 
+    margin-bottom: 3px;
+    letter-spacing: 1px;
+  }
+  .contact { 
+    text-align: center; 
+    font-size: 9px; 
+    margin-bottom: 8px; 
+    color: #000;
+  }
+  .section-title { 
+    font-size: 10.5px; 
+    font-weight: bold; 
+    text-transform: uppercase;
+    border-bottom: 1.5px solid #000; 
+    margin-bottom: 4px;
+    margin-top: 7px;
+    padding-bottom: 1px;
+    letter-spacing: 0.8px;
+  }
+  .entry-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    font-weight: bold;
+    font-size: 10px;
+    margin-bottom: 1px;
+  }
+  .entry-date {
+    font-size: 9px;
+    white-space: nowrap;
+  }
+  .entry-subtitle {
+    font-style: italic;
+    font-size: 9px;
+    margin-bottom: 2px;
+    color: #000;
+  }
+  ul {
+    padding-left: 13px;
+    margin: 2px 0;
+  }
+  li {
+    margin-bottom: 1px;
+    font-size: 9.5px;
+    line-height: 1.3;
+  }
+  .skills-line {
+    font-size: 9.5px;
+    margin-bottom: 2px;
+  }
+  .skills-line b {
+    font-weight: bold;
+  }
 </style>
 </head>
 <body>
-  <!-- Name -->
-  <!-- Contact -->
-  <!-- Summary -->
-  <!-- Education -->
-  <!-- Experience -->
-  <!-- Projects -->
-  <!-- Skills -->
-  <!-- Achievements -->
+
+<div class="name">CANDIDATE FULL NAME</div>
+<div class="contact">City, State | Phone | Email | LinkedIn | GitHub</div>
+
+<div class="section-title">Summary</div>
+<p style="font-size:9.5px; line-height:1.3;">2 line professional summary tailored to job description</p>
+
+<div class="section-title">Education</div>
+<div class="entry-header">
+  <span>University Name, Degree</span>
+  <span class="entry-date">Year – Year</span>
+</div>
+<div class="entry-subtitle">Branch | GPA: X.XX / 10</div>
+
+<div class="section-title">Experience</div>
+<div class="entry-header">
+  <span>Role — Company</span>
+  <span class="entry-date">Month Year – Month Year</span>
+</div>
+<ul>
+  <li>Achievement with metric</li>
+  <li>Achievement with metric</li>
+  <li>Achievement with metric</li>
+</ul>
+
+<div class="section-title">Projects</div>
+<div class="entry-header">
+  <span>Project Name — Tech Stack</span>
+  <span class="entry-date">live-link.com</span>
+</div>
+<div class="entry-subtitle">github.com/username/repo</div>
+<ul>
+  <li>What you built and impact</li>
+  <li>Technical achievement</li>
+  <li>Deployment/scale detail</li>
+</ul>
+
+<div class="section-title">Technical Skills</div>
+<div class="skills-line"><b>Languages:</b> list here</div>
+<div class="skills-line"><b>Web Dev:</b> list here</div>
+<div class="skills-line"><b>Tools:</b> list here</div>
+
+<div class="section-title">Achievements</div>
+<ul>
+  <li>Achievement 1</li>
+  <li>Achievement 2</li>
+</ul>
+
 </body>
 </html>
 
-CONTENT RULES:
-- Use REAL data from Resume Content and Self Description
-- Tailor content for the Job Description
-- Quantify achievements where possible
-- Keep bullet points concise — max 1.5 lines each
-- Max 3-4 bullets per job/project
-- Skills in single line per category
-- Summary: 2 lines max
-
-Return ONLY the JSON object, no other text.`
+STRICT RULES:
+1. Replace ALL placeholder text with REAL candidate data
+2. Include ALL projects from resume — especially recent ones
+3. Tailor every bullet point for the job description
+4. Keep bullets concise — max 15 words each
+5. Max 3 bullets per section entry
+6. Skills on single lines only
+7. NO tables, NO images, NO icons
+8. MUST fit in 1 page — be concise
+9. Quantify achievements wherever possible
+10. Return ONLY JSON — no explanation text`
 
     const response = await withRetry(() =>
         groq.chat.completions.create({
             model: AI_MODEL,
             messages: [{ role: "user", content: prompt }],
-            temperature: 0.3,  // ✅ Lower temperature — more consistent output
-            response_format: { type: "json_object" }
+            temperature: 0.2,
+            response_format: { type: "json_object" },
+            max_tokens: 4000
         })
     )
 
@@ -242,6 +321,5 @@ Return ONLY the JSON object, no other text.`
     const pdfBuffer = await generatePdfFromHtml(parsed.html)
     return pdfBuffer
 }
-
 
 module.exports = { generateInterviewReport, generateResumePdf }
