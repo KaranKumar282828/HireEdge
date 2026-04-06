@@ -173,8 +173,8 @@ http://localhost:5173
 
 | Service | Platform | URL |
 |---------|----------|-----|
-| Frontend | Vercel | https://hiredge.vercel.app |
-| Backend | Render | https://hiredge.onrender.com |
+| Frontend | Vercel | https://hireedge.vercel.app |
+| Backend | Render | https://hireedge.onrender.com |
 | Database | MongoDB Atlas | Cloud |
 
 ---
