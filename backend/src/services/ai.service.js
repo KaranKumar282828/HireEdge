@@ -151,7 +151,7 @@ async function generatePdfFromHtml(htmlContent) {
 
 async function generateResumePdf({ resume, selfDescription, jobDescription }) {
 
-    const prompt = `You are a professional resume writer. Generate an ATS-friendly HTML resume.
+    const prompt = `You are a professional ATS-optimized resume writer. Generate a clean, 1-page resume.
 
 Resume Content: ${resume}
 Self Description: ${selfDescription}
@@ -162,13 +162,60 @@ Return a JSON object with EXACTLY this structure:
     "html": "<complete HTML resume>"
 }
 
-Requirements for the HTML:
-- Professional and clean design
-- ATS friendly
-- Tailored for the job description
-- 1-2 pages when converted to PDF
-- Use inline CSS only
-- Do not sound AI generated
+STRICT REQUIREMENTS for the HTML resume:
+
+DESIGN:
+- Clean, minimal, professional design
+- Single column layout — NO multi-column
+- White background, black text
+- Font: Arial or Helvetica, 10-11px body, 14px name
+- Margins: 15mm all sides
+- Must fit in exactly 1 page when printed
+
+ATS RULES:
+- NO tables, NO columns, NO text boxes
+- NO images, NO icons, NO graphics
+- NO headers/footers
+- Standard section headings: SUMMARY, EDUCATION, EXPERIENCE, PROJECTS, SKILLS, ACHIEVEMENTS
+- Plain bullet points using • character only
+
+HTML STRUCTURE:
+<html>
+<head>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: Arial, sans-serif; font-size: 10.5px; color: #000; padding: 15mm; }
+  h1 { font-size: 18px; text-align: center; margin-bottom: 2px; }
+  .contact { text-align: center; font-size: 9.5px; margin-bottom: 8px; }
+  .section { margin-bottom: 8px; }
+  .section-title { font-size: 11px; font-weight: bold; text-transform: uppercase; border-bottom: 1px solid #000; margin-bottom: 4px; padding-bottom: 1px; letter-spacing: 0.5px; }
+  .job-header { display: flex; justify-content: space-between; font-weight: bold; font-size: 10.5px; }
+  .job-subtitle { font-style: italic; font-size: 10px; margin-bottom: 2px; }
+  ul { padding-left: 12px; margin: 2px 0; }
+  li { margin-bottom: 1px; line-height: 1.3; }
+  .skills-row { margin-bottom: 2px; }
+</style>
+</head>
+<body>
+  <!-- Name -->
+  <!-- Contact -->
+  <!-- Summary -->
+  <!-- Education -->
+  <!-- Experience -->
+  <!-- Projects -->
+  <!-- Skills -->
+  <!-- Achievements -->
+</body>
+</html>
+
+CONTENT RULES:
+- Use REAL data from Resume Content and Self Description
+- Tailor content for the Job Description
+- Quantify achievements where possible
+- Keep bullet points concise — max 1.5 lines each
+- Max 3-4 bullets per job/project
+- Skills in single line per category
+- Summary: 2 lines max
 
 Return ONLY the JSON object, no other text.`
 
@@ -176,7 +223,7 @@ Return ONLY the JSON object, no other text.`
         groq.chat.completions.create({
             model: AI_MODEL,
             messages: [{ role: "user", content: prompt }],
-            temperature: 0.7,
+            temperature: 0.3,  // ✅ Lower temperature — more consistent output
             response_format: { type: "json_object" }
         })
     )
