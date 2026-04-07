@@ -77,6 +77,13 @@ p, h1, h2, h3, h4, h5, h6 {
         font-weight: 700;
         color: whitesmoke;
         letter-spacing: 0.5px;
+        cursor: pointer;          // ✅ Clickable
+        transition: color 0.2s;
+        user-select: none;
+
+        &:hover {
+            color: var(--primary); // ✅ Hover pe red
+        }
     }
 
     &__right {
@@ -85,24 +92,151 @@ p, h1, h2, h3, h4, h5, h6 {
         gap: 1rem;
     }
 
-    &__user {
-        font-size: 0.875rem;
-        color: #7d8590;
+    // ✅ Account button
+    &__account {
+        position: relative;
     }
 
-    &__logout {
+    &__account-btn {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
         background: transparent;
-        border: 1px solid var(--primary);
-        color: var(--primary);
-        padding: 0.4rem 1rem;
-        border-radius: 0.5rem;
+        border: 1px solid #2a3348;
+        border-radius: 2rem;
+        padding: 0.35rem 0.75rem 0.35rem 0.35rem;
         cursor: pointer;
-        font-size: 0.875rem;
         transition: all 0.2s;
+        color: whitesmoke;
 
         &:hover {
-            background: var(--primary);
-            color: white;
+            border-color: var(--primary);
+            background: rgba(225, 3, 77, 0.05);
+        }
+    }
+
+    &__avatar {
+        width: 28px;
+        height: 28px;
+        border-radius: 50%;
+        background: var(--primary);
+        color: white;
+        font-size: 0.8rem;
+        font-weight: 700;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+    }
+
+    &__username {
+        font-size: 0.875rem;
+        color: whitesmoke;
+        font-weight: 500;
+    }
+
+    &__chevron {
+        color: #7d8590;
+        transition: transform 0.2s;
+        flex-shrink: 0;
+
+        &--open {
+            transform: rotate(180deg);
+        }
+    }
+
+    // ✅ Dropdown
+    &__dropdown {
+        position: absolute;
+        top: calc(100% + 8px);
+        right: 0;
+        min-width: 220px;
+        background: #161b22;
+        border: 1px solid #2a3348;
+        border-radius: 0.75rem;
+        overflow: hidden;
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+        animation: slideDown 0.15s ease;
+        z-index: 200;
+    }
+
+    &__dropdown-header {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        padding: 1rem;
+        background: #1c2230;
+    }
+
+    &__dropdown-avatar {
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        background: var(--primary);
+        color: white;
+        font-size: 1rem;
+        font-weight: 700;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+    }
+
+    &__dropdown-info {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        overflow: hidden;
+    }
+
+    &__dropdown-name {
+        font-size: 0.875rem;
+        font-weight: 600;
+        color: whitesmoke;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    &__dropdown-email {
+        font-size: 0.75rem;
+        color: #7d8590;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    &__dropdown-divider {
+        height: 1px;
+        background: #2a3348;
+    }
+
+    &__dropdown-item {
+        display: flex;
+        align-items: center;
+        gap: 0.6rem;
+        width: 100%;
+        padding: 0.7rem 1rem;
+        background: transparent;
+        border: none;
+        color: #7d8590;
+        font-size: 0.875rem;
+        cursor: pointer;
+        text-align: left;
+        transition: all 0.15s;
+
+        &:hover {
+            background: #1c2230;
+            color: whitesmoke;
+        }
+
+        &--logout {
+            color: var(--primary);
+
+            &:hover {
+                background: rgba(225, 3, 77, 0.1);
+                color: var(--primary);
+            }
         }
     }
 }
